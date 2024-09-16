@@ -1,0 +1,9 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SECRET_KEY = os.getenv("BACKEND_SECRET_KEY")
+DJANGO_SECRET_KEY = os.getenv("BACKEND_DJANGO_SECRET_KEY")
+DJANGO_PASSWORD = os.getenv("BACKEND_DJANGO_PASSWORD")
+DJANGO_EVALUATION_SERVER_URL = os.getenv("BACKEND_DJANGO_EVALUATION_SERVER_URL")
