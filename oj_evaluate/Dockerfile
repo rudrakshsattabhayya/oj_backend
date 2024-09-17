@@ -16,6 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Install the required packages for executing the CPP file
 RUN apt-get update && apt-get install -y g++
 
+# COPY ../.env .env
+
 # Copy the Django project files to the working directory
 COPY . .
 
