@@ -1,14 +1,22 @@
 version: '3'
+
 services:
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    networks:
+      - app-network
+
   oj_backend:
     build:
       context: ./oj_backend
     ports:
-      - "8001:8001"  # Expose service1 to the host
+      - "8004:8004"
     networks:
       - app-network
     depends_on:
-      - nginx  # Ensure nginx is available when service1 starts
+      - nginx
 
   oj_evaluate:
     build:
@@ -16,18 +24,9 @@ services:
     networks:
       - app-network
     deploy:
-      replicas: 3  # Run 3 replicas of oj_evaluate
+      replicas: 3
       restart_policy:
         condition: on-failure
-
-  nginx:
-    image: nginx:latest
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro  # Use custom nginx config
-    networks:
-      - app-network
-    depends_on:
-      - oj_evaluate  # Ensure oj_evaluate is available when nginx starts
 
 networks:
   app-network:
