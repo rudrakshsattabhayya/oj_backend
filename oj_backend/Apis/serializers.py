@@ -38,7 +38,7 @@ class ListSubmissionsViewSerializer(serializers.ModelSerializer):
 class SubmissionsOfAProblemSerializer(serializers.ModelSerializer):
     class Meta:
         model = SubmissionModel
-        fields = ('time', 'verdict', 'code')
+        fields = ('time', 'verdict', 'code', 'status')
 
 class TagModelSerializer(serializers.ModelSerializer):
     class Meta:
