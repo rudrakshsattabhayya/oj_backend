@@ -49,6 +49,8 @@ class SubmissionModel(models.Model):
     verdict = models.BooleanField(default=False)
     user = models.ForeignKey(UserModel, related_name="submissions", on_delete=models.CASCADE)
     problem = models.ForeignKey(ProblemModel, related_name="submissions", on_delete=models.CASCADE)
+    request_id = models.UUIDField(unique=True, null=True)
+    status = models.CharField(default="Queued", max_length=50)
 
     def __str__(self):
         return self.user.name + " (" + self.problem.title + ")"

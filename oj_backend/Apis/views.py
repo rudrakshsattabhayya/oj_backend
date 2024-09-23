@@ -6,6 +6,7 @@ import jwt
 import os
 from rest_framework import status
 from rest_framework.response import Response
+from django.contrib.auth.models import User
 from google.auth import crypt
 from google.auth import jwt as gjwt
 from uuid import uuid4
@@ -394,8 +395,25 @@ class SubmitProblemView(APIView):
 
         temp2 = temp.decode('utf-8')
         response_dict = json.loads(temp2)
-        verdict = response_dict["verdict"]
+        task_id = response_dict["task_id"]
 
+        print(f"Task id: {task_id}")
+
+        submissionObj.request_id = task_id
+        submissionObj.save()
+
+        return Response({"verdict": "Queued", "task_id": task_id, "message": "Successful submission!", "status": status.HTTP_200_OK})
+    
+
+class UpdateVerdict(APIView):
+    def post(self, request):
+        verdict = request.data["verdict"]
+        task_id = request.data["task_id"]
+
+        submissionObj = SubmissionModel.objects.filter(request_id=task_id).first()
+        submissionObj.status = "Processed"
+        problem = submissionObj.problem
+        user = submissionObj.user
 
         problem.totalSubmissions += 1
         user.totalSubmissions += 1
@@ -416,8 +434,7 @@ class SubmitProblemView(APIView):
         problem.save()
         submissionObj.save()
 
-        return Response({"verdict": verdict, "message": "Successful submission!", "status": status.HTTP_200_OK})
-    
+        return Response({"status": status.HTTP_200_OK})
 class DeleteSubmissionsView(APIView):
     def post(self, request):
         recievedJWT = request.data['jwtToken']
@@ -546,3 +563,20 @@ class DontSleep(APIView):
             return Response("Thank you for helping me not to sleep!")
         else:
             return InitializeAppsData()
+
+class CreateSuperUser(APIView):
+    def post(self, request):
+        django_pwd = request.data['django_pwd']
+        
+        if not django_pwd == DJANGO_PASSWORD:
+            return Response({"message": "Invalid User!", "status": status.HTTP_401_UNAUTHORIZED})
+        
+        username = request.data['username']
+        email = request.data['email']
+        password = request.data['password']
+
+        User.objects.create_superuser(username, email, password)
+
+        requests.post(f"{DJANGO_EVALUATION_SERVER_URL}/create_superuser", data=request.data)
+
+        return Response({"status": status.HTTP_200_OK})

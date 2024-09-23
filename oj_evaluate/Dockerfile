@@ -16,15 +16,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Install the required packages for executing the CPP file
 RUN apt-get update && apt-get install -y g++
 
-# COPY ../.env .env
+# Install Redis
+RUN apt-get install -y redis-server
 
 # Copy the Django project files to the working directory
 COPY . .
 
 EXPOSE 8002
 
-# Run Django's migration and then the development server
-CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8002"]
+# Create a shell script to start both Django and Celery
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
-#Running the follwing cmd to ensure security and limiting the resources of container
-#docker run --cpus=0.5 --memory=512m --read-only oj_evaluation_server
+CMD ["/start.sh"]
