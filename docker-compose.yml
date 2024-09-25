@@ -1,6 +1,6 @@
 version: '3'
 services:
-  oj_backend:
+  oj-backend:
     build:
       context: ./oj_backend
     env_file:
@@ -12,7 +12,7 @@ services:
     depends_on:
       - nginx  # Ensure nginx is available when service1 starts
 
-  oj_evaluate:
+  oj-evaluate:
     build:
       context: ./oj_evaluate
     env_file:
@@ -36,7 +36,7 @@ services:
     networks:
       - app-network
     depends_on:
-      - oj_evaluate  # Ensure oj_evaluate is available when nginx starts
+      - oj-evaluate  # Ensure oj_evaluate is available when nginx starts
 
 networks:
   app-network:
