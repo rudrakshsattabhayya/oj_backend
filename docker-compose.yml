@@ -19,10 +19,6 @@ services:
       - .env
     networks:
       - app-network
-    deploy:
-      replicas: 3  # Run 3 replicas of oj_evaluate
-      restart_policy:
-        condition: on-failure
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/Apis/heartbeat"]
       interval: 30s
