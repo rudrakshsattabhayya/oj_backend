@@ -11,6 +11,11 @@ services:
       - app-network
     depends_on:
       - nginx  # Ensure nginx is available when service1 starts
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/Apis/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   oj-evaluate:
     build:

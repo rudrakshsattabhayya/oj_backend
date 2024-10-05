@@ -556,11 +556,11 @@ def InitializeAppsData():
     
     return Response({"message": "Initialized the app data!", "status": status.HTTP_200_OK})
 
-class DontSleep(APIView):
+class HeartBeat(APIView):
     def get(self, request):
         users = UserModel.objects.all()
         if len(users) >= 6:
-            return Response("Thank you for helping me not to sleep!")
+            return Response({"status": status.HTTP_200_OK})
         else:
             return InitializeAppsData()
 
