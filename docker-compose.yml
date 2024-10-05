@@ -28,7 +28,7 @@ services:
   nginx:
     image: nginx:latest
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro  # Use custom nginx config
+      - ./nginx/:/etc/nginx/:ro  # Use custom nginx config
     networks:
       - app-network
     depends_on:
