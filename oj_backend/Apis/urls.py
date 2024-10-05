@@ -17,7 +17,7 @@ urlpatterns = [
     path('get-leaderboard', GetLeaderBoardView.as_view()),
     path('submit-problem', SubmitProblemView.as_view()),
     path('delete-submissions', DeleteSubmissionsView.as_view()),#Admin
-    path('dont-sleep', DontSleep.as_view()),
+    path('heartbeat', HeartBeat.as_view()),
     path('create_superuser', CreateSuperUser.as_view()),
     path('update_verdict', UpdateVerdict.as_view()),
 ]
