@@ -36,6 +36,7 @@ services:
       - "8080:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro  # Use custom nginx config
+    command: /bin/sh -c "mkdir -p /etc/nginx && nginx -g 'daemon off;'"  # Ensure directory exists
     networks:
       - app-network
     depends_on:
