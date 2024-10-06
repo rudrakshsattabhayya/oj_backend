@@ -31,11 +31,9 @@ services:
       retries: 5
 
   nginx:
-    image: nginx:latest
+    build: ./  # Assuming your Dockerfile is in the root of your project
     ports:
       - "8080:80"
-    volumes:
-      - ./nginx/:/etc/nginx/:ro  # Mount the whole directory
     networks:
       - app-network
     depends_on:
