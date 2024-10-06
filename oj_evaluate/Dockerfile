@@ -16,9 +16,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Install the required packages for executing the CPP file
 RUN apt-get update && apt-get install -y g++
 
-# Install Redis
-RUN apt-get install -y redis-server
-
 # Copy the Django project files to the working directory
 COPY . .
 
