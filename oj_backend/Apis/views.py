@@ -409,16 +409,18 @@ class UpdateVerdict(APIView):
     def post(self, request):
         verdict = request.data["verdict"]
         task_id = request.data["task_id"]
+        reason = request.data["reason"]
 
         submissionObj = SubmissionModel.objects.filter(request_id=task_id).first()
         submissionObj.status = "Processed"
+        submissionObj.reason = reason
         problem = submissionObj.problem
         user = submissionObj.user
 
         problem.totalSubmissions += 1
         user.totalSubmissions += 1
 
-        if verdict:
+        if verdict == "True":
             solutionViewed = ProblemIdModel.objects.filter(problemId=problem.id, user=user).all()
             submissions = SubmissionModel.objects.filter(user__email = user.email, problem=problem).all()
             if len(solutionViewed) == 0 and len(submissions) == 1:

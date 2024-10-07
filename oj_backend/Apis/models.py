@@ -47,6 +47,7 @@ class SubmissionModel(models.Model):
     code = models.FileField(upload_to="submissions")
     time = models.DateTimeField(auto_now_add=True)
     verdict = models.BooleanField(default=False)
+    reason = models.TextField(null=True)
     user = models.ForeignKey(UserModel, related_name="submissions", on_delete=models.CASCADE)
     problem = models.ForeignKey(ProblemModel, related_name="submissions", on_delete=models.CASCADE)
     request_id = models.UUIDField(unique=True, null=True)
