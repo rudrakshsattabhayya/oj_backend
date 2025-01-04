@@ -17,7 +17,7 @@ type Submission struct {
 	User      *auth.User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"user"`
 	ProblemID uuid.UUID  `gorm:"type:uuid" json:"problemId"`
 	Problem   *Problem   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"problem"`
-	RequestID *uuid.UUID `gorm:"type:uuid;unique;" json:"requestId,omitempty"`
+	RequestID uuid.UUID `gorm:"type:uuid;unique;" json:"requestId,omitempty"`
 	Status    string     `gorm:"type:varchar(50);default:'Queued';not null" json:"status"`
 	CreatedAt time.Time  `gorm:"autoCreateTime" json:"createdAt"`
 }

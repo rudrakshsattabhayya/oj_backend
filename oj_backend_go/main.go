@@ -41,6 +41,10 @@ func main() {
 		c.JSON(200, gin.H{"message": "ok"})
 	})
 
+	r.GET("Apis/heartbeat", func(c *gin.Context) {
+		c.JSON(200, gin.H{"message": "ok"})
+	})
+
 	r.POST("/Apis/login", func(c *gin.Context) {
 		var params AuthApis.LoginParams
 		if err := c.Bind(&params); err != nil {
@@ -435,6 +439,26 @@ func main() {
 		}
 
 		res, err := OjApis.SubmitProblem(params)
+
+		if err != nil {
+			log.Print("Error in SubmitProblem:", err.Error())
+			c.JSON(400, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(200, res)
+	})
+
+	r.POST("/Apis/update_verdict", func(c *gin.Context) {
+		var params OjApis.UpdateVerdictParams
+
+		if err := c.Bind(&params); err != nil {
+			log.Print("Error", "Failed to bind parameters:", err.Error())
+			c.JSON(400, gin.H{"error": "Invalid request"})
+			return
+		}
+
+		res, err := OjApis.UpdateVerdict(params)
 
 		if err != nil {
 			log.Print("Error in SubmitProblem:", err.Error())

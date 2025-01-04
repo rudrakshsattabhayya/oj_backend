@@ -11,6 +11,10 @@ from env import (DJANGO_PASSWORD)
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.conf import settings
+import requests
+from django.core.files.base import ContentFile
+from django.http import JsonResponse
+from rest_framework import status
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -76,7 +80,44 @@ class GetTheVerdict(APIView):
             return {"message": "Invalid User!", "status": status.HTTP_401_UNAUTHORIZED}
 
         try:
-            codeModalObj = CodeModel(code=request.data['code'], inputs=request.data['inputs'], correctOutputs=request.data['correctOutputs'])
+            def get_file_from_url(url):
+                """Helper function to fetch file content from a URL."""
+                try:
+                    # Download the file from URL
+                    response = requests.get(url)
+                    response.raise_for_status()  # Raises an HTTPError for bad responses
+                    
+                    # Get the filename from the URL
+                    filename = os.path.basename(url)
+                    if not filename:
+                        filename = 'downloaded_file'  # Default filename if none found in URL
+                    
+                    # Create a Django ContentFile
+                    file_content = ContentFile(response.content)
+                    file_content.name = filename
+                    
+                    return file_content
+                except requests.exceptions.RequestException as e:
+                    raise Exception(f"Error downloading file from URL: {str(e)}")
+            
+            # Check if the field is a URL or a file upload
+            def process_file_field(field_name):
+                field_value = request.data.get(field_name)
+
+                if isinstance(field_value, str) and field_value.startswith('http'):
+                    return get_file_from_url(field_value)
+                else:
+                    return field_value
+
+            code_file = process_file_field('code')
+            inputs_file = process_file_field('inputs')
+            correct_outputs_file = process_file_field('correctOutputs')
+
+            codeModalObj = CodeModel(
+                code=code_file,
+                inputs=inputs_file,
+                correctOutputs=correct_outputs_file
+            )
             codeModalObj.save()
 
             task = evalutate.delay(codeModalObj.id)

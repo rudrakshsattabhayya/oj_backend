@@ -125,7 +125,7 @@ def UpdateVerdict(task_id, verdict, reason=""):
         "reason": reason
     }
 
-    # print("Task: ", response)
+    print("UpdateVerdict: ", response)
 
     requests.post(f"{DJANGO_BACKEND_SERVER_URL}/update_verdict", data=response)
 

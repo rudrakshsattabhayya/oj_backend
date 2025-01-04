@@ -2,7 +2,7 @@ version: '3'
 services:
   oj-backend:
     build:
-      context: ./oj_backend
+      context: ./oj_backend_go
     env_file:
       - .env
     ports:
@@ -22,6 +22,8 @@ services:
       context: ./oj_evaluate
     env_file:
       - .env
+    ports:
+      - "8002:8002"
     networks:
       - app-network
     healthcheck:

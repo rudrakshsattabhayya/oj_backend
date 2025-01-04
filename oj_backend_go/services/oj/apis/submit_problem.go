@@ -1,7 +1,15 @@
 package apis
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
 	"mime/multipart"
+	"os"
+
+	"net/http"
+	"net/url"
 
 	"github.com/google/uuid"
 	"github.com/rudrakshsattabhayya/oj_backend_go/config"
@@ -44,15 +52,21 @@ func SubmitProblemTranCode(params SubmitProblemParams, tx *gorm.DB) (SubmitProbl
 		return SubmitProblemResponse{Status: 400, Message: "Error: "}, err
 	}
 
-	_, err = CreateSubmission(params, problem, tx)
+	submission, err := CreateSubmission(params, problem, tx)
 	if err != nil {
 		return SubmitProblemResponse{Status: 400, Message: "Error: "}, err
 	}
 
-	//Evaluate the submission
-	//Update submission with task_id
+	task_id, err := EvaluateSubmission(submission, problem, tx)
+	if err != nil {
+		return SubmitProblemResponse{}, err
+	}
 
-	return SubmitProblemResponse{Verdict: "Queued", Status: 200, Message: "Successful submission!"}, nil
+	if err := UpdateTaskID(submission, task_id, tx); err != nil {
+		return SubmitProblemResponse{}, err
+	}
+
+	return SubmitProblemResponse{Verdict: "Queued", Status: 200, Message: "Successful submission!", TaskID: task_id}, nil
 }
 
 func ValidateProblem(questionId string, tx *gorm.DB) (oj.Problem, error) {
@@ -78,10 +92,10 @@ func CreateSubmission(params SubmitProblemParams, problem oj.Problem, tx *gorm.D
 	}
 
 	submission := oj.Submission{
-		Code:    codeurl,
-		UserID:  UserID,
+		Code:      codeurl,
+		UserID:    UserID,
 		ProblemID: problem.ID,
-		Verdict: false,
+		Verdict:   false,
 	}
 
 	if err := tx.Create(&submission).Error; err != nil {
@@ -89,4 +103,51 @@ func CreateSubmission(params SubmitProblemParams, problem oj.Problem, tx *gorm.D
 	}
 
 	return submission, nil
+}
+
+func EvaluateSubmission(submission oj.Submission, problem oj.Problem, tx *gorm.DB) (string, error) {
+	baseURL := os.Getenv("BACKEND_DJANGO_EVALUATION_SERVER_URL") + "/get-verdict"
+	params := url.Values{}
+	params.Add("code", submission.Code)
+	params.Add("inputs", problem.HiddenTestCases)
+	params.Add("correctOutputs", problem.CorrectOutput)
+	params.Add("password", os.Getenv("BACKEND_DJANGO_PASSWORD"))
+
+	resp, err := http.PostForm(baseURL, params)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		log.Fatal(err)
+	}
+
+	task_id := result["task_id"].(string)
+
+	return task_id, nil
+}
+
+func UpdateTaskID(submission oj.Submission, task_id string, tx *gorm.DB) error {
+	TaskID, err := uuid.Parse(task_id)
+	if err != nil {
+		return err
+	}
+
+	submission.RequestID = TaskID
+	if err := tx.Save(&submission).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
