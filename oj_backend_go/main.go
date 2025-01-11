@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/rudrakshsattabhayya/oj_backend_go/config"
 	"github.com/rudrakshsattabhayya/oj_backend_go/helpers"
@@ -23,6 +24,13 @@ func main() {
 
 	r := gin.Default()
 
+	r.Use(cors.New(cors.Config{
+		AllowAllOrigins: true,                                                // This allows all origins
+		AllowMethods:    []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, // Allow specific methods
+		AllowHeaders:    []string{"Origin", "Content-Type", "Authorization"}, // Allow specific headers
+		AllowCredentials: true,
+	}))
+
 	//If scope of apis.json have admin, then check for admin. Add it to middleware
 
 	r.GET("/dont-sleep", func(c *gin.Context) {
@@ -30,7 +38,7 @@ func main() {
 
 		if err != nil {
 			log.Print("Error in DontSleep:", err.Error())
-			c.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
 
@@ -49,7 +57,7 @@ func main() {
 		var params AuthApis.LoginParams
 		if err := c.Bind(&params); err != nil {
 			log.Print("Error", "Failed to bind parameters:", err.Error())
-			c.JSON(400, gin.H{"error": "Invalid request"})
+			c.JSON(400, gin.H{"message": "Invalid request"})
 			return
 		}
 
@@ -67,7 +75,7 @@ func main() {
 		var params AuthApis.LoginWithPasswordParams
 		if err := c.Bind(&params); err != nil {
 			log.Print("Error", "Failed to bind parameters:", err.Error())
-			c.JSON(400, gin.H{"error": "Invalid request"})
+			c.JSON(400, gin.H{"message": "Invalid request"})
 			return
 		}
 
@@ -88,7 +96,7 @@ func main() {
 
 		if !exists {
 			log.Print("Error", "Session does not exist")
-			c.JSON(401, gin.H{"error": "Unauthorized"})
+			c.JSON(401, gin.H{"message": "Unauthorized"})
 			return
 		}
 
@@ -96,7 +104,7 @@ func main() {
 
 		if err := c.Bind(&params); err != nil {
 			log.Print("Error", "Failed to bind parameters:", err.Error())
-			c.JSON(400, gin.H{"error": "Invalid request"})
+			c.JSON(400, gin.H{"message": "Invalid request"})
 			return
 		}
 
@@ -104,7 +112,7 @@ func main() {
 
 		if err != nil {
 			log.Print("Error in ChangeThePassword:", err.Error())
-			c.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
 
@@ -118,7 +126,7 @@ func main() {
 
 		if !exists {
 			log.Print("Error", "Session does not exist")
-			c.JSON(401, gin.H{"error": "Unauthorized"})
+			c.JSON(401, gin.H{"message": "Unauthorized"})
 			return
 		}
 
@@ -126,7 +134,7 @@ func main() {
 
 		if err := c.Bind(&params); err != nil {
 			log.Print("Error", "Failed to bind parameters:", err.Error())
-			c.JSON(400, gin.H{"error": "Invalid request"})
+			c.JSON(400, gin.H{"message": "Invalid request"})
 			return
 		}
 
@@ -134,7 +142,7 @@ func main() {
 
 		if err != nil {
 			log.Print("Error in ChangeUsername:", err.Error())
-			c.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
 
@@ -148,7 +156,7 @@ func main() {
 
 		if !exists {
 			log.Print("Error", "Session does not exist")
-			c.JSON(401, gin.H{"error": "Unauthorized"})
+			c.JSON(401, gin.H{"message": "Unauthorized"})
 			return
 		}
 
@@ -156,7 +164,7 @@ func main() {
 
 		if err := c.Bind(&params); err != nil {
 			log.Print("Error", "Failed to bind parameters:", err.Error())
-			c.JSON(400, gin.H{"error": "Invalid request"})
+			c.JSON(400, gin.H{"message": "Invalid request"})
 			return
 		}
 
@@ -164,7 +172,7 @@ func main() {
 
 		if err != nil {
 			log.Print("Error in Auth Route:", err.Error())
-			c.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
 
@@ -178,7 +186,7 @@ func main() {
 
 		if !exists {
 			log.Print("Error", "Session does not exist")
-			c.JSON(401, gin.H{"error": "Unauthorized"})
+			c.JSON(401, gin.H{"message": "Unauthorized"})
 			return
 		}
 
@@ -186,7 +194,7 @@ func main() {
 
 		if err := c.Bind(&params); err != nil {
 			log.Print("Error", "Failed to bind parameters:", err.Error())
-			c.JSON(400, gin.H{"error": "Invalid request"})
+			c.JSON(400, gin.H{"message": "Invalid request"})
 			return
 		}
 
@@ -194,7 +202,7 @@ func main() {
 
 		if err != nil {
 			log.Print("Error in Auth Route:", err.Error())
-			c.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
 
@@ -208,20 +216,20 @@ func main() {
 
 		if !exists {
 			log.Print("Error", "Session does not exist")
-			c.JSON(401, gin.H{"error": "Unauthorized"})
+			c.JSON(401, gin.H{"message": "Unauthorized"})
 			return
 		}
 
 		params.PerformedByID = currSession.(models.Session).PerformedByID
 
 		if err := helpers.PopulateDynamicStructWithFiles(c, &params); err != nil {
-			c.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
 
 		if err := c.Bind(&params); err != nil {
 			log.Print("Error", "Failed to bind parameters:", err.Error())
-			c.JSON(400, gin.H{"error": "Invalid request"})
+			c.JSON(400, gin.H{"message": "Invalid request"})
 			return
 		}
 
@@ -229,7 +237,7 @@ func main() {
 
 		if err != nil {
 			log.Print("Error in Create Problem:", err.Error())
-			c.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
 
@@ -243,13 +251,13 @@ func main() {
 
 		if !exists {
 			log.Print("Error", "Session does not exist")
-			c.JSON(401, gin.H{"error": "Unauthorized"})
+			c.JSON(401, gin.H{"message": "Unauthorized"})
 			return
 		}
 
 		if err := c.Bind(&params); err != nil {
 			log.Print("Error", "Failed to bind parameters:", err.Error())
-			c.JSON(400, gin.H{"error": "Invalid request"})
+			c.JSON(400, gin.H{"message": "Invalid request"})
 			return
 		}
 
@@ -257,7 +265,7 @@ func main() {
 
 		if err != nil {
 			log.Print("Error in Create Problem:", err.Error())
-			c.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
 
@@ -269,7 +277,7 @@ func main() {
 
 		if err := c.Bind(&params); err != nil {
 			log.Print("Error", "Failed to bind parameters:", err.Error())
-			c.JSON(400, gin.H{"error": "Invalid request"})
+			c.JSON(400, gin.H{"message": "Invalid request"})
 			return
 		}
 
@@ -277,7 +285,7 @@ func main() {
 
 		if err != nil {
 			log.Print("Error in List Problems:", err.Error())
-			c.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
 
@@ -291,7 +299,7 @@ func main() {
 
 		if !exists {
 			log.Print("Error", "Session does not exist")
-			c.JSON(401, gin.H{"error": "Unauthorized"})
+			c.JSON(401, gin.H{"message": "Unauthorized"})
 			return
 		}
 
@@ -299,7 +307,7 @@ func main() {
 
 		if err := c.Bind(&params); err != nil {
 			log.Print("Error", "Failed to bind parameters:", err.Error())
-			c.JSON(400, gin.H{"error": "Invalid request"})
+			c.JSON(400, gin.H{"message": "Invalid request"})
 			return
 		}
 
@@ -307,7 +315,7 @@ func main() {
 
 		if err != nil {
 			log.Print("Error in ShowProblemSolution:", err.Error())
-			c.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
 
@@ -321,7 +329,7 @@ func main() {
 
 		if !exists {
 			log.Print("Error", "Session does not exist")
-			c.JSON(401, gin.H{"error": "Unauthorized"})
+			c.JSON(401, gin.H{"message": "Unauthorized"})
 			return
 		}
 
@@ -329,7 +337,7 @@ func main() {
 
 		if err := c.Bind(&params); err != nil {
 			log.Print("Error", "Failed to bind parameters:", err.Error())
-			c.JSON(400, gin.H{"error": "Invalid request"})
+			c.JSON(400, gin.H{"message": "Invalid request"})
 			return
 		}
 
@@ -337,7 +345,7 @@ func main() {
 
 		if err != nil {
 			log.Print("Error in ListSubmissions:", err.Error())
-			c.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
 
@@ -349,7 +357,7 @@ func main() {
 
 		if err := c.Bind(&params); err != nil {
 			log.Print("Error", "Failed to bind parameters:", err.Error())
-			c.JSON(400, gin.H{"error": "Invalid request"})
+			c.JSON(400, gin.H{"message": "Invalid request"})
 			return
 		}
 
@@ -357,7 +365,7 @@ func main() {
 
 		if err != nil {
 			log.Print("Error in ListTags:", err.Error())
-			c.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
 
@@ -371,7 +379,7 @@ func main() {
 
 		if !exists {
 			log.Print("Error", "Session does not exist")
-			c.JSON(401, gin.H{"error": "Unauthorized"})
+			c.JSON(401, gin.H{"message": "Unauthorized"})
 			return
 		}
 
@@ -379,7 +387,7 @@ func main() {
 
 		if err := c.Bind(&params); err != nil {
 			log.Print("Error", "Failed to bind parameters:", err.Error())
-			c.JSON(400, gin.H{"error": "Invalid request"})
+			c.JSON(400, gin.H{"message": "Invalid request"})
 			return
 		}
 
@@ -387,7 +395,7 @@ func main() {
 
 		if err != nil {
 			log.Print("Error in ShowProblem:", err.Error())
-			c.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
 
@@ -399,7 +407,7 @@ func main() {
 
 		if err := c.Bind(&params); err != nil {
 			log.Print("Error", "Failed to bind parameters:", err.Error())
-			c.JSON(400, gin.H{"error": "Invalid request"})
+			c.JSON(400, gin.H{"message": "Invalid request"})
 			return
 		}
 
@@ -407,7 +415,7 @@ func main() {
 
 		if err != nil {
 			log.Print("Error in GetLeaderboard:", err.Error())
-			c.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
 
@@ -421,20 +429,20 @@ func main() {
 
 		if !exists {
 			log.Print("Error", "Session does not exist")
-			c.JSON(401, gin.H{"error": "Unauthorized"})
+			c.JSON(401, gin.H{"message": "Unauthorized"})
 			return
 		}
 
 		params.PerformedByID = currSession.(models.Session).PerformedByID
 
 		if err := helpers.PopulateDynamicStructWithFiles(c, &params); err != nil {
-			c.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
 
 		if err := c.Bind(&params); err != nil {
 			log.Print("Error", "Failed to bind parameters:", err.Error())
-			c.JSON(400, gin.H{"error": "Invalid request"})
+			c.JSON(400, gin.H{"message": "Invalid request"})
 			return
 		}
 
@@ -442,7 +450,7 @@ func main() {
 
 		if err != nil {
 			log.Print("Error in SubmitProblem:", err.Error())
-			c.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
 
@@ -454,7 +462,7 @@ func main() {
 
 		if err := c.Bind(&params); err != nil {
 			log.Print("Error", "Failed to bind parameters:", err.Error())
-			c.JSON(400, gin.H{"error": "Invalid request"})
+			c.JSON(400, gin.H{"message": "Invalid request"})
 			return
 		}
 
@@ -462,7 +470,7 @@ func main() {
 
 		if err != nil {
 			log.Print("Error in SubmitProblem:", err.Error())
-			c.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"message": err.Error()})
 			return
 		}
 

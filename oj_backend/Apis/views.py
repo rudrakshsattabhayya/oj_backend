@@ -21,8 +21,15 @@ from env import (SECRET_KEY, DJANGO_PASSWORD, DJANGO_EVALUATION_SERVER_URL)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-def authenticate(recievedJWT):
+def authenticate(bearerToken=None):
+    if(not bearerToken):
+       return {"message": "Login Expired!", "status": status.HTTP_400_BAD_REQUEST}
+
     decodedJWT=None
+    recievedJWT=None
+    if bearerToken and bearerToken.startswith('Bearer '):
+        recievedJWT = bearerToken.split(' ')[1]
+
     try:
         decodedJWT = jwt.decode(recievedJWT, SECRET_KEY, algorithms=['HS256'])
     except:
@@ -57,13 +64,9 @@ def verify_password(password, hashed_password):
 
 class AuthenticateRoute(APIView):
     def post(self, request):
-        recievedToken = request.data['token']
-        if not recievedToken:
-            return Response({"message": "Token not found! Try to Re-Login.", "status": status.HTTP_404_NOT_FOUND})
-        
-        res = authenticate(recievedToken)
-        if res["status"] == status.HTTP_404_NOT_FOUND:
-            return Response(res)
+        res = authenticate(request.headers.get('Authorization'))
+        if res["status"] != status.HTTP_200_OK:
+            return Response(res, status=res["status"])
         
         user = res['user']
         obj = {
@@ -73,18 +76,15 @@ class AuthenticateRoute(APIView):
             "profilePic": user.profilePic,
             "username": user.username
         }
-        return Response(obj)
+        return Response(obj, status=status.HTTP_200_OK)
 
 class AuthenticateRouteForAdmin(APIView):
     def post(self, request):
-        recievedToken = request.data['token']
-        if not recievedToken:
-            return Response({"message": "Token not found! Try to Re-Login.", "status": status.HTTP_404_NOT_FOUND})
-        
-        res = authenticate(recievedToken)
+        res = authenticate(request.headers.get('Authorization'))
+        if res["status"] != status.HTTP_200_OK:
+            return Response(res, status=res["status"])
+
         user = res['user']
-        if res["status"] == status.HTTP_404_NOT_FOUND:
-            return Response(res)
         
         if user.isAdmin:
             obj = {
@@ -93,9 +93,9 @@ class AuthenticateRouteForAdmin(APIView):
             "email": user.email,
             "profilePic": user.profilePic
             }
-            return Response(obj)
+            return Response(obj, status=status.HTTP_200_OK)
         else:
-            return Response({"message": "Requested page can only be accessed by the Admin!", "status": status.HTTP_403_FORBIDDEN})
+            return Response({"message": "Requested page can only be accessed by the Admin!", "status": status.HTTP_403_FORBIDDEN}, status=status.HTTP_403_FORBIDDEN)
 
 class LoginView(APIView):
     def post(self, request):
@@ -104,7 +104,7 @@ class LoginView(APIView):
         try:
             googleObj = gjwt.decode(recievedJWT, verify=False)
         except:
-            return Response({"message":"Invalid JWT!", "status": status.HTTP_404_NOT_FOUND})
+            return Response({"message":"Invalid JWT!", "status": status.HTTP_404_NOT_FOUND}, status=status.HTTP_404_NOT_FOUND)
         
         userToken = str(uuid4())
         found = UserModel.objects.filter(email=googleObj['email']).first()
@@ -122,7 +122,7 @@ class LoginView(APIView):
                   }
         jwtToken = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
 
-        return Response({"jwtToken": jwtToken, "name": user.name, "email": user.email, "profilePic": user.profilePic, "status": status.HTTP_200_OK})
+        return Response({"jwtToken": jwtToken, "name": user.name, "email": user.email, "profilePic": user.profilePic, "status": status.HTTP_200_OK}, status=status.HTTP_200_OK)
 
 class LoginWithPassword(APIView):
     def post(self, request):
@@ -131,10 +131,10 @@ class LoginWithPassword(APIView):
         user = UserModel.objects.filter(email=email).first()
 
         if not user:
-            return Response({"message": "This email is not registered! Login with google to register yourself.", "status": status.HTTP_404_NOT_FOUND})
+            return Response({"message": "This email is not registered! Login with google to register yourself.", "status": status.HTTP_404_NOT_FOUND}, status=status.HTTP_404_NOT_FOUND)
 
         if not user.hashedPassword:
-            return Response({"message": "Login with google to add your password!", "status": status.HTTP_501_NOT_IMPLEMENTED})
+            return Response({"message": "Login with google to add your password!", "status": status.HTTP_501_NOT_IMPLEMENTED}, status=status.HTTP_501_NOT_IMPLEMENTED)
         
         verified = verify_password(password, user.hashedPassword)
 
@@ -147,55 +147,50 @@ class LoginWithPassword(APIView):
                     "token": userToken
                     }
             jwtToken = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
-            return Response({"jwtToken": jwtToken, "name": user.name, "email": user.email, "profilePic": user.profilePic, "status": status.HTTP_200_OK})
+            return Response({"jwtToken": jwtToken, "name": user.name, "email": user.email, "profilePic": user.profilePic, "status": status.HTTP_200_OK}, status=status.HTTP_200_OK)
         else:
-            return Response({"message": "Password is wrong!", "status": status.HTTP_400_BAD_REQUEST})
+            return Response({"message": "Password is wrong!", "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
 
 class ChangeThePassword(APIView):
     def post(self, request):
-        password = request.data["password"]
-        recievedJWT = request.data['jwtToken']
-
-        authentication = authenticate(recievedJWT=recievedJWT)
-        if authentication['status'] != status.HTTP_200_OK:
-            return Response(authentication)
+        res = authenticate(request.headers.get('Authorization'))
+        if res["status"] != status.HTTP_200_OK:
+            return Response(res, status=res["status"])
         
-        user = authentication["user"]
+        password = request.data["password"]
+        user = res["user"]
         hashedPassword = hash_password(password)
         user.hashedPassword = hashedPassword
         user.save()
 
-        return Response({"message": "Password is changed!", "status": status.HTTP_200_OK})        
+        return Response({"message": "Password is changed!", "status": status.HTTP_200_OK}, status=status.HTTP_200_OK)        
         
 
 
 class ChangeUserNameView(APIView):
     def post(self, request):
-        recievedJWT = request.data['jwtToken']
-        response = authenticate(recievedJWT=recievedJWT)
-        if response['status'] == status.HTTP_404_NOT_FOUND:
-            return Response({"message" : "User is Invalid!", "status": status.HTTP_404_NOT_FOUND})
+        res = authenticate(request.headers.get('Authorization'))
+        if res["status"] != status.HTTP_200_OK:
+            return Response(res, status=res["status"])
         
         newUserName = request.data["newUserName"]
 
         check = UserModel.objects.filter(username=newUserName).first()
         if check:
-            return Response({"message": "A User with this username already exists!", "status": status.HTTP_400_BAD_REQUEST})
+            return Response({"message": "A User with this username already exists!", "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = UserModel.objects.filter(email=response['user'].email).first()
+        user = UserModel.objects.filter(email=res['user'].email).first()
         user.username = newUserName
         user.save()
 
         ser_data = UserModelSerializer(user)
-        return Response({"username": ser_data.data["username"], "message": "Username successfully changed!", "status": status.HTTP_200_OK})
+        return Response({"username": ser_data.data["username"], "message": "Username successfully changed!", "status": status.HTTP_200_OK}, status=status.HTTP_200_OK)
 
 class CreateProblemView(APIView): 
     def post(self, request):
-        recievedJWT = request.data['jwtToken']
-        response = authenticate(recievedJWT=recievedJWT)
-
-        if response['status'] != status.HTTP_200_OK or response['user'].isAdmin == False:
-            return Response({"message" : "User is Invalid!", "status": status.HTTP_404_NOT_FOUND})
+        res = authenticate(request.headers.get('Authorization'))
+        if res["status"] != status.HTTP_200_OK:
+            return Response(res, status=res["status"])
 
         data = request.data
         files = request.FILES
@@ -255,7 +250,7 @@ class CreateProblemView(APIView):
             newProblem.tags.add(y)
 
         newProblem.save()
-        return Response({"QuestionId": newProblem.id, "status": status.HTTP_200_OK})
+        return Response({"QuestionId": newProblem.id, "status": status.HTTP_200_OK}, status=status.HTTP_200_OK)
 
 class GetLeaderBoardView(APIView):
     def get(self, request):
@@ -263,10 +258,10 @@ class GetLeaderBoardView(APIView):
             users = UserModel.objects.all()
             ser_data = GetLeaderBoardViewSerializer(users, many=True)
 
-            return Response({"response": ser_data.data, "status": status.HTTP_200_OK})
+            return Response({"response": ser_data.data, "status": status.HTTP_200_OK}, status=status.HTTP_200_OK)
         
         except:
-            return Response({"message": "Unable to get the leaderboard!", "status": status.HTTP_400_BAD_REQUEST})
+            return Response({"message": "Unable to get the leaderboard!", "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
 
 class ListProblemsView(APIView):
     def get(self, request):
@@ -274,79 +269,73 @@ class ListProblemsView(APIView):
             problems = ProblemModel.objects.all()
             ser_data = ListProblemViewSerializer(problems, many=True)
             
-            return Response({"problems": ser_data.data, "status": status.HTTP_200_OK})
+            return Response({"problems": ser_data.data, "status": status.HTTP_200_OK}, status=status.HTTP_200_OK)
         
         except:
             return Response({"message": "Unable to get the Problems!", "status": status.HTTP_400_BAD_REQUEST})
     
 class ListSubmissionsView(APIView):
     def post(self, request):
-        recievedJWT = request.data['jwtToken']
-        response = authenticate(recievedJWT=recievedJWT)
-
-        if response['status'] != status.HTTP_200_OK:
-            return Response(response)
+        res = authenticate(request.headers.get('Authorization'))
+        if res["status"] != status.HTTP_200_OK:
+            return Response(res, status=res["status"])
         
-        user = response['user']
+        user = res['user']
 
         submissions = SubmissionModel.objects.filter(user__email = user.email).all()
         ser_data = ListSubmissionsViewSerializer(submissions, many=True)
 
-        return Response({"submissions": ser_data.data, "status": status.HTTP_200_OK})
+        return Response({"submissions": ser_data.data, "status": status.HTTP_200_OK}, status=status.HTTP_200_OK)
     
 class ListTagsView(APIView):
     def get(self, request):
         try:
             availableTags = TagModel.objects.all()
             ser_data = TagModelSerializer(availableTags, many=True)
-            return Response({"tags": ser_data.data, "status": status.HTTP_200_OK})
+            return Response({"tags": ser_data.data, "status": status.HTTP_200_OK}, status=status.HTTP_200_OK)
         except:
-            return Response({"message": "Unable to get the Filter Tags!", "status": status.HTTP_400_BAD_REQUEST})
+            return Response({"message": "Unable to get the Filter Tags!", "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
     
 class ShowProblemView(APIView):
     def post(self, request):
-        recievedJWT = request.data['jwtToken']
-        response = authenticate(recievedJWT=recievedJWT)
-
-        if response['status'] != status.HTTP_200_OK:
-            return Response(response)
+        res = authenticate(request.headers.get('Authorization'))
+        if res["status"] != status.HTTP_200_OK:
+            return Response(res, status=res["status"])
         
-        user = response['user']
+        user = res['user']
 
         questionId = request.data["questionId"]
         problem = None
         try:
             problem = ProblemModel.objects.filter(id=questionId).first()
         except:
-            return Response({"message": "Problem ID is invalid!", "status": status.HTTP_404_NOT_FOUND})
+            return Response({"message": "Problem ID is invalid!", "status": status.HTTP_404_NOT_FOUND}, status=status.HTTP_404_NOT_FOUND)
 
         if(not problem):
-            return Response({"message": "Problem ID is invalid!", "status": status.HTTP_404_NOT_FOUND})
+            return Response({"message": "Problem ID is invalid!", "status": status.HTTP_404_NOT_FOUND}, status=status.HTTP_404_NOT_FOUND)
 
         userSubmissions = SubmissionModel.objects.filter(user=user, problem=problem)
         ser_submissions = SubmissionsOfAProblemSerializer(userSubmissions, many=True)
 
         ser_data = ShowProblemViewSerializer(problem)
-        return Response({"response": {"problemsData":ser_data.data, "userSubmissions": ser_submissions.data} , "status": status.HTTP_200_OK})
+        return Response({"response": {"problemsData":ser_data.data, "userSubmissions": ser_submissions.data} , "status": status.HTTP_200_OK}, status=status.HTTP_200_OK)
 
 class ShowProblemSolutionView(APIView):
     def post(self, request):
-        recievedJWT = request.data['jwtToken']
-        response = authenticate(recievedJWT=recievedJWT)
-
-        if response['status'] != status.HTTP_200_OK:
-            return Response(response)
+        res = authenticate(request.headers.get('Authorization'))
+        if res["status"] != status.HTTP_200_OK:
+            return Response(res, status=res["status"])
         
-        user = response['user']
+        user = res['user']
         questionId = request.data["questionId"]
         problem = None
         try:
             problem = ProblemModel.objects.filter(id=questionId).first()
         except:
-            return Response({"message": "Problem ID is invalid!", "status": status.HTTP_404_NOT_FOUND})
+            return Response({"message": "Problem ID is invalid!", "status": status.HTTP_404_NOT_FOUND},status=status.HTTP_404_NOT_FOUND)
 
         if(not problem):
-            return Response({"message": "Problem ID is invalid!", "status": status.HTTP_404_NOT_FOUND})
+            return Response({"message": "Problem ID is invalid!", "status": status.HTTP_404_NOT_FOUND}, status=status.HTTP_404_NOT_FOUND)
 
         problemIdModelObj = ProblemIdModel.objects.filter(problemId=problem.id, user=user).first()
         if not problemIdModelObj:
@@ -354,19 +343,17 @@ class ShowProblemSolutionView(APIView):
             problemIdModelObj.save()
 
         # correct_solution_url = problem.correctSolution.url if problem.correctSolution else None
-        return Response({"solution": problem.correctSolution.url, "status": status.HTTP_200_OK})
+        return Response({"solution": problem.correctSolution.url, "status": status.HTTP_200_OK}, status=status.HTTP_200_OK)
 
 class SubmitProblemView(APIView):
     def post(self, request):
-        recievedJWT = request.data['jwtToken']
-        response = authenticate(recievedJWT=recievedJWT)
-
-        if response['status'] == status.HTTP_404_NOT_FOUND:
-            return Response({"message" : "User is Invalid!", "status": status.HTTP_404_NOT_FOUND})
+        res = authenticate(request.headers.get('Authorization'))
+        if res["status"] != status.HTTP_200_OK:
+            return Response(res, status=res["status"])
 
         submissionFile = request.FILES["code"]
         questionId = request.data["questionId"]
-        user = response['user']
+        user = res['user']
         problem = ProblemModel.objects.filter(id=questionId).first()
 
         if not problem:
@@ -402,7 +389,7 @@ class SubmitProblemView(APIView):
         submissionObj.request_id = task_id
         submissionObj.save()
 
-        return Response({"verdict": "Queued", "task_id": task_id, "message": "Successful submission!", "status": status.HTTP_200_OK})
+        return Response({"verdict": "Queued", "task_id": task_id, "message": "Successful submission!", "status": status.HTTP_200_OK}, status=status.HTTP_200_OK)
     
 
 class UpdateVerdict(APIView):
@@ -436,14 +423,12 @@ class UpdateVerdict(APIView):
         problem.save()
         submissionObj.save()
 
-        return Response({"status": status.HTTP_200_OK})
+        return Response({"status": status.HTTP_200_OK}, status=status.HTTP_200_OK)
 class DeleteSubmissionsView(APIView):
     def post(self, request):
-        recievedJWT = request.data['jwtToken']
-        response = authenticate(recievedJWT=recievedJWT)
-
-        if response['status'] != status.HTTP_200_OK or response['user'].isAdmin == False:
-            return Response({"message" : "User is Invalid!", "status": status.HTTP_404_NOT_FOUND})
+        res = authenticate(request.headers.get('Authorization'))
+        if res["status"] != status.HTTP_200_OK:
+            return Response(res, status=res["status"])
         
         submissionsToBeDeleted = request.data['submissionsToBeDeleted']
 
@@ -461,7 +446,7 @@ class DeleteSubmissionsView(APIView):
 
             submission.delete()
         
-        return Response({"message":"Selected submissions are deleted!", "status": status.HTTP_200_OK})
+        return Response({"message":"Selected submissions are deleted!", "status": status.HTTP_200_OK}, status=status.HTTP_200_OK)
 
 def addTags(tags, newProblem):
     tagslist = tags.split(", ")
@@ -556,13 +541,13 @@ def InitializeAppsData():
             totalSubmissions = int(info.get('totalSubmissions', 0))
             initializeProblem(title=title, difficulty=difficulty, tags=tags, fileName=folder_name, acceptedSubmissions=acceptedSubmissions, totalSubmissions=totalSubmissions)
     
-    return Response({"message": "Initialized the app data!", "status": status.HTTP_200_OK})
+    return Response({"message": "Initialized the app data!", "status": status.HTTP_200_OK}, status=status.HTTP_200_OK)
 
 class HeartBeat(APIView):
     def get(self, request):
         users = UserModel.objects.all()
         if len(users) >= 6:
-            return Response({"status": status.HTTP_200_OK})
+            return Response({"status": status.HTTP_200_OK}, status=status.HTTP_200_OK)
         else:
             return InitializeAppsData()
 
@@ -571,7 +556,7 @@ class CreateSuperUser(APIView):
         django_pwd = request.data['django_pwd']
         
         if not django_pwd == DJANGO_PASSWORD:
-            return Response({"message": "Invalid User!", "status": status.HTTP_401_UNAUTHORIZED})
+            return Response({"message": "Invalid User!", "status": status.HTTP_401_UNAUTHORIZED}, status=status.HTTP_401_UNAUTHORIZED)
         
         username = request.data['username']
         email = request.data['email']
@@ -581,4 +566,4 @@ class CreateSuperUser(APIView):
 
         requests.post(f"{DJANGO_EVALUATION_SERVER_URL}/create_superuser", data=request.data)
 
-        return Response({"status": status.HTTP_200_OK})
+        return Response({"status": status.HTTP_200_OK}, status=status.HTTP_200_OK)

@@ -2,7 +2,7 @@ version: '3'
 services:
   oj-backend:
     build:
-      context: ./oj_backend_go
+      context: ./oj_backend
     env_file:
       - .env
     ports:

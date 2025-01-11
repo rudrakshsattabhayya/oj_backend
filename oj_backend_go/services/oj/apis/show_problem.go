@@ -14,7 +14,7 @@ type ShowProblemParams struct {
 
 type ShowProblemResponse struct {
 	Response struct {
-		ProblemsData    []ShowProblemProblemsData `json:"problemsData"`
+		ProblemsData    ShowProblemProblemsData `json:"problemsData"`
 		UserSubmissions []ShowProblemUserData     `json:"userSubmissions"`
 	} `json:"response"`
 	Status int `json:"status"`
