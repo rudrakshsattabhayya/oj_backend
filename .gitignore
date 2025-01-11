@@ -121,6 +121,8 @@ venv.bak/
 # sftp configuration file 
 sftp-config.json 
 
+.DS_Store
+
 # Package control specific files Package 
 Control.last-run 
 Control.ca-list 
