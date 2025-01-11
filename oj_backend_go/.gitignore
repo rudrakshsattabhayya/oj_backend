@@ -1,9 +1,0 @@
-#Environment
-.env
-
-
-
-#Logs
-*.log
-
-.vscode
